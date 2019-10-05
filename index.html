@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+    <title>Jumping Frogs</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <style>
+        html, body, * {
+            transition: all .4s linear;
+        }
+        body {
+            background: #a0c2ff;
+        }
+        #app {
+            margin: auto;
+            text-align: center;
+            padding-top: 90px;
+              -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                 -khtml-user-select: none;
+                   -moz-user-select: none;
+                    -ms-user-select: none;
+                        user-select: none;
+        }
+        #scene {
+            position: relative;
+            min-width: 100%;
+        }
+        #scene span {
+            cursor: pointer;
+            display: inline-block;
+            border-radius: 50%;
+            width: 80px;
+            border: solid 2px #1b591b;
+            margin: 0 10px;
+            background: #8bdd8b;
+            height: 20px;
+            margin-top: 50px;
+        }
+        #scene span:hover {
+            background-color: #ddd;
+        }
+        #scene span:active {
+            background-color: #bbb;
+        }
+        #scene img {
+            width: 82px;
+            height: auto;
+            position: absolute;
+            top: -22px;
+            margin-left: -42px;
+        }
+
+        #scene label {
+            margin-top: 4px;
+            display: inline-block;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="scene"></div>
+    <div id="message"></div>
+    <button id="reset">Reset</button>
+    <select id="total_frogs">
+        <option value="2">2</option>
+        <option value="4">4</option>
+        <option value="6">6</option>
+        <option value="8">8</option>
+        <option value="10">10</option>
+        <option value="12">12</option>
+        <option value="16">16</option>
+        <option value="30">30</option>
+        <option value="50">50</option>
+    </select>
+</div>
+
+
+<script>
+    jQuery(document).ready(function ($) {
+        (function () {
+
+            var app = {
+                nrFrogs         : 0, // must be even number
+                $scene          : $('#scene'),
+                $msg            : $('#message'),
+                gameState       : [],
+                gameStateSolved : [],
+                sceneSize       : 0,
+                jumpSound       : new Audio('jumping-sound.mp3'),
+                winSound        : new Audio('win-sound.mp3'),
+
+                draw : function () {
+                    var ob = this;
+
+                    console.log('draw');
+                    ob.$scene.html('');
+                    ob.gameState.forEach(function (el, i) {
+                        var img = '';
+                        var padClass = '';
+
+                        if (el === '>') {
+                            // img = '&gt;';
+                            img = '<img src="frog-looks-right.png">';
+                            padClass = 'green';
+                        } else if (el === '<') {
+                            // img = '&lt;';
+                            img = '<img src="frog-looks-left.png">';
+                            padClass = 'pink';
+                        } else {
+                            img = '<label>&nbsp;</label>';
+                            padClass = 'blue';
+                        }
+
+                        ob.$scene.append('<span data-index="' + i + '" class="' + padClass + '">' + img + '</span>');
+                    });
+                },
+
+                equals : function (arr1, arr2) {
+                    console.log('equals');
+                    if (arr1.length !== arr2.length) {
+                        return false;
+                    }
+
+                    for (var i = arr1.length; i--;) {
+                        if (arr1[i] !== arr2[i]) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                },
+
+                blockAheadIsFree : function (i) {
+                    console.log('baif');
+                    if (this.gameState[i] === '>') {
+                        if (i < this.gameState.length - 1) {
+                            return this.gameState[i + 1] === '_';
+                        }
+                        // delete else after debug
+                        else {
+                            console.log('> cannot move; is at the right end of scene');
+                            return false;
+                        }
+                    }
+                    if (this.gameState[i] === '<') {
+                        if (i > 0) {
+                            return this.gameState[i - 1] === '_';
+                        }
+                        // delete else after debug
+                        else {
+                            console.log('< cannot move; is at the left end of scene');
+                            return false;
+                        }
+                    }
+                    return false;
+                },
+
+                blockForJumpIsFree : function (i) {
+                    console.log('bfjif');
+                    if (this.gameState[i] === '>') {
+                        if (i < this.gameState.length - 2) {
+                            return this.gameState[i + 2] === '_';
+                        }
+                        // delete else after debug
+                        else {
+                            console.log('> cannot jump');
+                            return false;
+                        }
+                    }
+                    if (this.gameState[i] === '<') {
+                        if (i > 1) {
+                            return this.gameState[i - 2] === '_';
+                        }
+                        // delete else after debug
+                        else {
+                            console.log('< cannot jump');
+                            return false;
+                        }
+                    }
+                    return false;
+                },
+
+                swap : function (a, b) {
+                    console.log('swap');
+                    var tmp = this.gameState[a];
+                    this.gameState[a] = this.gameState[b];
+                    this.gameState[b] = tmp;
+                },
+
+                makeMove : function (i) {
+                    console.log('move');
+                    if (this.gameState[i] === '>') {
+                        if (this.blockAheadIsFree(i)) {
+                            this.jumpSound.play();
+                            this.swap(i, i + 1);
+                            $('#scene > span[data-index="' + i + '"] > img').css('margin-left', '+=100px');
+                        } else if (this.blockForJumpIsFree(i)) {
+                            this.jumpSound.play();
+                            this.swap(i, i + 2);
+                            $('#scene > span[data-index="' + i + '"] > img').css({
+                                'margin-left': '+=200px',
+                                'margin-top': '-165px',
+                                'transform': 'rotateZ(360deg)'
+                            });
+                            setTimeout(function () {
+                                $('#scene > span[data-index="' + i + '"] > img').css({
+                                    'margin-left': '+=210px',
+                                    'margin-top': '0px',
+                                    'transform': 'rotateZ(360deg)'
+                                });
+                            }, 210);
+                        } else {
+                            console.log(i, '> cannot move');
+                        }
+                    } else if (this.gameState[i] === '<') {
+                        if (this.blockAheadIsFree(i)) {
+                            this.jumpSound.play();
+                            this.swap(i, i - 1);
+                            $('#scene > span[data-index="' + i + '"] > img').css('margin-left', '-=100px');
+                        } else if (this.blockForJumpIsFree(i)) {
+                            this.jumpSound.play();
+                            this.swap(i, i - 2);
+                            // $('#scene > span[data-index="' + i + '"] > img').css('margin-left', '-=200px');
+                            $('#scene > span[data-index="' + i + '"] > img').css({
+                                'margin-left': '-=200px',
+                                'margin-top': '-165px',
+                                'transform': 'rotateZ(-360deg)'
+                            });
+                            setTimeout(function () {
+                                $('#scene > span[data-index="' + i + '"] > img').css({
+                                    'margin-left': '-=210px',
+                                    'margin-top': '0px',
+                                    'transform': 'rotateZ(-360deg)'
+                                });
+                            }, 210);
+                        } else {
+                            console.log(i, '< cannot move');
+                        }
+                    } else {
+                        console.log('clicked empty block');
+                    }
+                    console.log(i, this.gameState);
+                },
+
+                init : function () {
+                    console.log('init', this);
+
+                    this.sceneSize = this.nrFrogs + 1;
+                    this.$scene.html('');
+                    this.gameState = [];
+                    this.gameStateSolved = [];
+
+                    for (var i = 0; i < this.sceneSize; ++i) {
+                        var char = '';
+                        var charSolved = '';
+                        if (i < this.nrFrogs / 2) {
+                            char = '>';
+                            charSolved = '<';
+                        } else if (i > this.nrFrogs / 2) {
+                            char = '<';
+                            charSolved = '>';
+                        } else {
+                            char = '_';
+                            charSolved = '_';
+                        }
+                        this.gameState.push(char);
+                        this.gameStateSolved.push(charSolved);
+                    }
+                    console.log(this.gameState, this.gameStateSolved);
+                },
+
+                isSolved : function () {
+                    console.log('isSolved');
+                    return this.equals(this.gameState, this.gameStateSolved);
+                },
+
+                run : function () {
+                    var ob = this;
+                    console.log('run');
+                    if (this.nrFrogs % 2 > 0) {
+                        this.$msg.text('Number of frogs must be even');
+                        return;
+                    }
+
+                    this.init();
+                    this.draw();
+                    // $('#scene > span > img').css({'margin-left': '-42px', 'margin-top': '0px'});
+
+                    $('#scene').css('width', (this.nrFrogs * 120) + 'px');
+
+                    $('body').on('click', '#scene > span', function () {
+                        if (ob.isSolved()) {
+                            console.log('Already solved');
+                            return;
+                        }
+                        var index = parseInt($(this).data('index'));
+                        ob.makeMove(index);
+                        setTimeout(function () {
+                            ob.draw();
+                            if (ob.isSolved()) {
+                                ob.$msg.text('Game solved');
+                                ob.winSound.play();
+                                $('#scene > span > img').css({
+                                    'margin-top': '0px',
+                                    'transform': 'rotateZ(0deg)'
+                                });
+                                for (var i = 0; i < 3; ++i) {
+                                    setTimeout(function () {
+                                        $('#scene > span > img').css({
+                                            // 'margin-left': '+=210px',
+                                            'margin-top': '-100px',
+                                            'transform': 'rotateZ(360deg)'
+                                        });
+                                    }, 210 + i * 800);
+                                    setTimeout(function () {
+                                        $('#scene > span > img').css({
+                                            // 'margin-left': '+=210px',
+                                            'margin-top': '0px',
+                                            'transform': 'rotateZ(360deg)'
+                                        });
+                                    }, 410 + i * 800);
+                                }
+                            }
+                        }, 410);
+                    });
+                }
+            };
+
+            app.nrFrogs = 2;
+            app.run();
+            $('#reset').click(function () {
+                app.run();
+            });
+            $('#total_frogs').change(function () {
+                app.nrFrogs = parseInt(this.value);
+                app.run();
+            });
+        })();
+    });
+</script>
+</body>
+</html>
