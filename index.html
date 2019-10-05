@@ -2,10 +2,11 @@
 <html>
 <meta charset="utf-8">
 <head>
-    <title>Jumping Frogs</title>
+    <title>Jumping frogs puzzle</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <style>
         html, body, * {
+            font-family: Arial;
             transition: all .4s linear;
         }
         body {
@@ -60,26 +61,61 @@
 </head>
 <body>
 
+<h1>Jumping frogs puzzle</h1>
+<p>The frogs must change position. Those on left must end up on right. Those on right must end up on left.</p>
+<p>A frog can move forward or can jump another frog. It cannot move backwards (use reset to restart the game)</p>
+
+
 <div id="app">
     <div id="scene"></div>
+    <br><br>
     <div id="message"></div>
+    <br><br>
     <button id="reset">Reset</button>
-    <select id="total_frogs">
-        <option value="2">2</option>
-        <option value="4">4</option>
-        <option value="6">6</option>
-        <option value="8">8</option>
-        <option value="10">10</option>
-        <option value="12">12</option>
-        <option value="16">16</option>
-        <option value="30">30</option>
-        <option value="50">50</option>
-    </select>
+    <span style="background-color: #ececec; padding: 1px 3px; font-size: 14px; border-radius: 2px; border: 1px solid #949494;">Number of frogs
+        <select id="total_frogs">
+            <option value="2">2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="16">16</option>
+            <option value="30">30</option>
+            <option value="50">50</option>
+        </select>
+    </span>
+    &nbsp;&nbsp;&nbsp;
+    <button id="zoomin">Zoom +</button>
+    <button id="zoomout">Zoom -</button>
 </div>
 
 
 <script>
+    var zoomLevel = 1.00;
+
     jQuery(document).ready(function ($) {
+        $('#zoomin').click(function () {
+            zoomLevel += 0.05;
+            $('#scene').css({
+                // 'zoom': zoomLevel,
+                // '-ms-zoom': zoomLevel,
+                // '-webkit-zoom': zoomLevel,
+                'transform': 'scale(' + zoomLevel + ')'
+            });
+            console.log(zoomLevel);
+        });
+        $('#zoomout').click(function () {
+            zoomLevel -= 0.05;
+            $('#scene').css({
+                // 'zoom': zoomLevel,
+                // '-ms-zoom': zoomLevel,
+                // '-webkit-zoom': zoomLevel,
+                'transform': 'scale(' + zoomLevel + ')'
+            });
+            console.log(zoomLevel);
+        });
+
         (function () {
 
             var app = {
